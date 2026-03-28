@@ -5,13 +5,14 @@ from pathlib import Path
 from subprocess import run
 from sys import version_info
 
+from my_modules.datetime import now
 from my_modules.git import Git
 from my_modules.logger import get_logger
 from my_modules.postgres import Postgres, PostgresSecret
-from my_modules.datetime import now
 from sqlalchemy import text
 from typer import Typer
 
+from prefect_k3s.config import PrefectConfig
 from prefect_k3s.vars import PREFECT_DATABASE, PREFECT_IMAGE
 
 prefect_k3s = Typer(
@@ -52,9 +53,8 @@ def build(prefix: str = PREFECT_IMAGE):
     tag = f"{prefect_version}-python{python_version}"
     base_image = f"prefecthq/prefect:{tag}"
     custom_image = f"{prefix}:{tag}"
-    sqlalchemy_conn_url = PostgresSecret.get_connection_string(
-        PREFECT_DATABASE, local=False, engine="asyncpg"
-    )
+    sqlalchemy_conn_url = PostgresSecret.get_connection_string(local=False)
+    
     git = Git()
 
     log.info(f"Current python version: {python_version}")
@@ -68,7 +68,8 @@ def build(prefix: str = PREFECT_IMAGE):
             f"FROM {base_image}",
             "",
             f"ENV SQLALCHEMY_CONN_URL={sqlalchemy_conn_url}",
-            f"RUN uv pip install git+{git.remote_url}@{git.current_branch}"
+            *PrefectConfig.docker_env(),
+            f"RUN uv pip install git+{git.remote_url}@{git.current_branch}",
         )
     )
     dockerfile.write_text(dockefile_contents)
