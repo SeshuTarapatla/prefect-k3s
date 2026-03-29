@@ -4,13 +4,15 @@ from importlib.metadata import version
 from pathlib import Path
 from subprocess import run
 from sys import version_info
+from time import sleep
 
-from my_modules.datetime import now
+import httpx
+from my_modules.datetime_utils import now
 from my_modules.git import Git
 from my_modules.logger import get_logger
 from my_modules.postgres import Postgres, PostgresSecret
 from sqlalchemy import text
-from typer import Typer
+from typer import Option, Typer
 
 from prefect_k3s.config import PrefectConfig
 from prefect_k3s.vars import PREFECT_DATABASE, PREFECT_IMAGE
@@ -54,7 +56,7 @@ def build(prefix: str = PREFECT_IMAGE):
     base_image = f"prefecthq/prefect:{tag}"
     custom_image = f"{prefix}:{tag}"
     sqlalchemy_conn_url = PostgresSecret.get_connection_string(local=False)
-    
+
     git = Git()
 
     log.info(f"Current python version: {python_version}")
@@ -75,3 +77,23 @@ def build(prefix: str = PREFECT_IMAGE):
     dockerfile.write_text(dockefile_contents)
     run(["docker", "build", "--no-cache", "-t", custom_image, "."])
     log.info(f"Build complete. Time taken: {now() - started_at}")
+
+
+@prefect_k3s.command(
+    name="wait", help="Wait for Prefect server readiness and liveness."
+)
+def wait(
+    timeout: int = Option(
+        300, "-t", "--timeout", help="Timeout for wait (in seconds)."
+    ),
+):
+    started_at = now()
+    while (now() - started_at).total_seconds() <= timeout:
+        health_endpoint = PrefectConfig.PREFECT_API_URL_LOCAL() + "/health"
+        if httpx.get(health_endpoint).status_code == 200:
+            log.info("Prefect server initialized and running.")
+            return
+        else:
+            log.info("Prefect server initializing...")
+            sleep(3)
+    raise TimeoutError("Timeout reached for server wait.")

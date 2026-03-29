@@ -1,6 +1,8 @@
 from json import dumps
+from sys import platform
 
 from my_modules.postgres import PostgresSecret
+from my_modules.wsl import get_wsl_ip
 from pydantic import BaseModel
 
 from prefect_k3s.vars import PREFECT_DATABASE, PREFECT_PORT, PREFECT_SVC
@@ -24,3 +26,7 @@ class PrefectConfig(BaseModel):
             f"ENV {key}={dumps(value)}"
             for key, value in cls().model_dump(mode="json").items()
         ]
+
+    @staticmethod
+    def PREFECT_API_URL_LOCAL() -> str:
+        return f"http://{get_wsl_ip() if platform == 'win32' else PREFECT_SVC}:{PREFECT_PORT}/api"
