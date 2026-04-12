@@ -9,21 +9,21 @@ from pydantic import BaseModel
 
 from prefect_k3s.vars import PREFECT_DATABASE, PREFECT_PORT, PREFECT_SVC
 
-
 log = get_logger(__name__)
 
 
 class PrefectConfig(BaseModel):
-    PREFECT_API_URL: str = f"http://{PREFECT_SVC}:{PREFECT_PORT}/api"
     PREFECT_API_DATABASE_CONNECTION_URL: str = PostgresSecret.get_connection_string(
         PREFECT_DATABASE, local=False, engine="asyncpg"
     )
-    PREFECT_SERVER_ANALYTICS_ENABLED: bool = False
-    PREFECT_TELEMETRY_ENABLE_RESOURCE_METRICS: bool = False
-    PREFECT_CLOUD_ENABLE_ORCHESTRATION_TELEMETRY: bool = False
+    PREFECT_API_URL: str = f"http://{PREFECT_SVC}:{PREFECT_PORT}/api"
     PREFECT_CLOUD_API_URL: None = None
+    PREFECT_CLOUD_ENABLE_ORCHESTRATION_TELEMETRY: bool = False
     PREFECT_CLOUD_UI_URL: None = None
+    PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW: str = "ignore"
+    PREFECT_SERVER_ANALYTICS_ENABLED: bool = False
     PREFECT_SERVER_UI_SHOW_PROMOTIONAL_CONTENT: bool = False
+    PREFECT_TELEMETRY_ENABLE_RESOURCE_METRICS: bool = False
 
     @classmethod
     def docker_env(cls) -> list[str]:
@@ -50,7 +50,7 @@ class PrefectConfig(BaseModel):
                         "set",
                         f"PREFECT_API_URL={api_url}",
                     ],
-                    stdout=DEVNULL
+                    stdout=DEVNULL,
                 )
                 == 0
             )
