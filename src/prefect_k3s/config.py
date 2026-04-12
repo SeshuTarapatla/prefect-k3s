@@ -1,11 +1,16 @@
 from json import dumps
+from subprocess import DEVNULL, check_call
 from sys import platform
 
+from my_modules.logger import get_logger
 from my_modules.postgres import PostgresSecret
 from my_modules.wsl import get_wsl_ip
 from pydantic import BaseModel
 
 from prefect_k3s.vars import PREFECT_DATABASE, PREFECT_PORT, PREFECT_SVC
+
+
+log = get_logger(__name__)
 
 
 class PrefectConfig(BaseModel):
@@ -30,3 +35,26 @@ class PrefectConfig(BaseModel):
     @staticmethod
     def PREFECT_API_URL_LOCAL() -> str:
         return f"http://{get_wsl_ip() if platform == 'win32' else PREFECT_SVC}:{PREFECT_PORT}/api"
+
+    @staticmethod
+    def windows_init() -> bool:
+        if platform == "win32":
+            log.info("Updating prefect configuration.")
+            api_url = PrefectConfig.PREFECT_API_URL_LOCAL()
+            log.info(f"PREFECT_API_URL={api_url}")
+            call = (
+                check_call(
+                    [
+                        "prefect",
+                        "config",
+                        "set",
+                        f"PREFECT_API_URL={api_url}",
+                    ],
+                    stdout=DEVNULL
+                )
+                == 0
+            )
+            log.info("Prefect config updated.")
+            return call
+        else:
+            return False

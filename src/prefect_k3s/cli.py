@@ -31,17 +31,18 @@ log = get_logger(__name__)
     name="init", help="Initialize required setup before start including db creation."
 )
 def init():
-    pg = Postgres(PREFECT_DATABASE)
-    if pg.db_exists:
-        log.info(f"[cyan]{PREFECT_DATABASE}[/] PostgreSQL database already exists.")
+    db = Postgres(PREFECT_DATABASE)
+    if db.exists:
+        log.info(f"[bold blue]{PREFECT_DATABASE}[/] PostgreSQL database already exists.")
     else:
         log.info(
-            f"Creating a PostgreSQL database [cyan]{PREFECT_DATABASE}[/] for prefect."
+            f"Creating a PostgreSQL database [bold blue]{PREFECT_DATABASE}[/] for prefect."
         )
-        with pg.engine_dev.connect() as conn:
+        with db.engine_dev.connect() as conn:
             sql = text(f"CREATE DATABASE {PREFECT_DATABASE};")
             conn.execute(sql)
         log.info("Database created successfully.")
+    PrefectConfig.windows_init()
 
 
 @prefect_k3s.command(
