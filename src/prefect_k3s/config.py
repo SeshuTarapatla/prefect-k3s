@@ -23,6 +23,7 @@ class PrefectConfig(BaseModel):
     PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW: str = "ignore"
     PREFECT_SERVER_ANALYTICS_ENABLED: bool = False
     PREFECT_SERVER_UI_SHOW_PROMOTIONAL_CONTENT: bool = False
+    PREFECT_TASKS_DEFAULT_NO_CACHE: bool = True
     PREFECT_TELEMETRY_ENABLE_RESOURCE_METRICS: bool = False
 
     @classmethod
@@ -36,14 +37,13 @@ class PrefectConfig(BaseModel):
     def PREFECT_API_URL_LOCAL() -> str:
         return f"http://{get_wsl_ip() if platform == 'win32' else PREFECT_SVC}:{PREFECT_PORT}/api"
 
-    @staticmethod
-    def windows_init() -> bool:
+    @classmethod
+    def windows_init(cls) -> bool:
         if platform == "win32":
             log.info("Updating prefect configuration.")
-            config = {
-                "PREFECT_API_URL": PrefectConfig.PREFECT_API_URL_LOCAL(),
-                "PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW": "ignore",
-            }
+            config = cls().model_dump()
+            config["PREFECT_API_URL"] = cls.PREFECT_API_URL_LOCAL()
+            del config["PREFECT_API_DATABASE_CONNECTION_URL"]
             for key, value in config.items():
                 config_value = f"{key}={value}"
                 log.info(config_value)
