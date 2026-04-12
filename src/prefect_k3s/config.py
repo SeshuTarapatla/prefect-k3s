@@ -40,21 +40,15 @@ class PrefectConfig(BaseModel):
     def windows_init() -> bool:
         if platform == "win32":
             log.info("Updating prefect configuration.")
-            api_url = PrefectConfig.PREFECT_API_URL_LOCAL()
-            log.info(f"PREFECT_API_URL={api_url}")
-            call = (
-                check_call(
-                    [
-                        "prefect",
-                        "config",
-                        "set",
-                        f"PREFECT_API_URL={api_url}",
-                    ],
-                    stdout=DEVNULL,
-                )
-                == 0
-            )
+            config = {
+                "PREFECT_API_URL": PrefectConfig.PREFECT_API_URL_LOCAL(),
+                "PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW": "ignore",
+            }
+            for key, value in config.items():
+                config_value = f"{key}={value}"
+                log.info(config_value)
+                check_call(["prefect", "config", "set", config_value], stdout=DEVNULL)
             log.info("Prefect config updated.")
-            return call
+            return True
         else:
             return False
