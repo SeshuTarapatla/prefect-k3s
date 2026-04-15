@@ -100,10 +100,14 @@ def wait(
     started_at = now()
     while (now() - started_at).total_seconds() <= timeout:
         health_endpoint = PrefectConfig.PREFECT_API_URL_LOCAL() + "/health"
-        if httpx.get(health_endpoint).status_code == 200:
-            log.info("Prefect server initialized and running.")
-            return
-        else:
+        try:
+            if httpx.get(health_endpoint).status_code == 200:
+                log.info("Prefect server initialized and running.")
+                return
+            else:
+                log.info("Prefect server initializing...")
+                sleep(3)
+        except Exception:
             log.info("Prefect server initializing...")
             sleep(3)
     raise TimeoutError("Timeout reached for server wait.")
