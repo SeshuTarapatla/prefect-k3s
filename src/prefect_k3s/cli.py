@@ -30,10 +30,19 @@ log = get_logger(__name__)
 @prefect_k3s.command(
     name="init", help="Initialize required setup before start including db creation."
 )
-def init():
+def init(
+    force: bool = Option(
+        False, "-f", "--force", help="Force create prefect db dropping any old data."
+    ),
+):
     db = Postgres(PREFECT_DATABASE)
+    if force and db.exists:
+        log.info(f"{PREFECT_DATABASE.capitalize()} database exists: [bold red]Dropping[/]...")
+        db.drop_db()
     if db.exists:
-        log.info(f"[bold blue]{PREFECT_DATABASE}[/] PostgreSQL database already exists.")
+        log.info(
+            f"[bold blue]{PREFECT_DATABASE}[/] PostgreSQL database already exists."
+        )
     else:
         log.info(
             f"Creating a PostgreSQL database [bold blue]{PREFECT_DATABASE}[/] for prefect."
