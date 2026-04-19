@@ -31,13 +31,15 @@ log = get_logger(__name__)
     name="init", help="Initialize required setup before start including db creation."
 )
 def init(
-    force: bool = Option(
-        False, "-f", "--force", help="Force create prefect db dropping any old data."
+    drop: bool = Option(
+        False, "-d", "--drop", help="Drop any existing Prefect database and metadata."
     ),
 ):
     db = Postgres(PREFECT_DATABASE)
-    if force and db.exists:
-        log.info(f"{PREFECT_DATABASE.capitalize()} database exists: [bold red]Dropping[/]...")
+    if drop and db.exists:
+        log.info(
+            f"{PREFECT_DATABASE.capitalize()} database exists: [bold red]Dropping[/]..."
+        )
         db.drop_db()
     if db.exists:
         log.info(
@@ -79,6 +81,7 @@ def build(prefix: str = PREFECT_IMAGE):
         (
             f"FROM {base_image}",
             "",
+            " ENV TZ=Asia/Kolkata",
             f"ENV SQLALCHEMY_CONN_URL={sqlalchemy_conn_url}",
             *PrefectConfig.docker_env(),
             f"RUN uv pip install git+{git.remote_url}@{git.current_branch}",
