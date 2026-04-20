@@ -40,7 +40,7 @@ def init(
         log.info(
             f"{PREFECT_DATABASE.capitalize()} database exists: [bold red]Dropping[/]..."
         )
-        db.drop_db()
+        db.drop_db(force=True)
     if db.exists:
         log.info(
             f"[bold blue]{PREFECT_DATABASE}[/] PostgreSQL database already exists."
